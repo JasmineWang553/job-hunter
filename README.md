@@ -19,69 +19,84 @@ tracker, and (optional) added to a Google Sheet.
 
 ## How it works
 
-### The workflow, step by step
-
-```mermaid
-flowchart TD
-    subgraph FIND["./jobs find · free"]
-        A["scan.mjs<br/>public job-board APIs of every company<br/>in target-companies.yml"] --> B["filter-by-experience.mjs<br/>drops jobs needing more years than<br/>find.max_required_years"]
-        B --> C["collect-run.mjs<br/>new jobs → runs/DATE/jobs-found.md"]
-    end
-
-    subgraph EVAL["./jobs evaluate · tokens"]
-        D["Claude scores each job 0-5<br/>against your CV and targeting"] --> E["report per job → runs/DATE/reports/<br/>row per job → tracker.md + scores.md"]
-    end
-
-    subgraph APPLY["./jobs apply · tokens"]
-        F{"score ≥ min_score?<br/>(default 4.0)"} -- yes --> G["Claude opens the form in your Chrome<br/>fills one page from profile/ + form-answers.yml"]
-        G --> H(["You review the page:<br/>ok · edit in Chrome · answer blanks"])
-        H -- next page --> G
-        H -- final page --> I(["You reply yes"])
-        I --> J["Submit → confirmation checked"]
-        F -- no --> K["stays in the run, not applied"]
-    end
-
-    subgraph RECORD["after each submit · free"]
-        L["tracker.md → Applied"]
-        M["jobs-found.md → [x] applied DATE"]
-        N["Google Sheet row<br/>(optional)"]
-    end
-
-    C --> D
-    E --> F
-    J --> L & M & N
-    H -. "your edits and answers" .-> O["learned into form-answers.yml<br/>and house-rules.md"]
-    O -. "used on the next form" .-> G
-```
-
-### Where the pieces live
-
 ```mermaid
 flowchart LR
-    U(["you"]) -- "./jobs …" --> J["jobs<br/>(one command)"]
-    J --> W["workflows/<br/>find, filter, run folders,<br/>sheet sync, status"]
-    J --> S[".claude/skills/apply-jobs<br/>page-by-page apply"]
-    J --> EN["career-ops engine<br/>scan, scoring, tracker"]
-
-    W <--> MD
-    S <--> MD
-    EN <-- "reads through links in<br/>my-data/.engine" --> MD
-
-    subgraph MD["my-data/  (yours, never pushed)"]
-        P["profile/<br/>cv.md · profile.yml<br/>form-answers.yml · ai-tools.md · resume"]
-        PR["preferences/<br/>settings.yml · target-companies.yml<br/>house-rules.md · targeting.md"]
-        R["runs/DATE/<br/>jobs-found.md · scores.md · reports/"]
-        T["tracker.md"]
-    end
-
-    S -. optional .-> GS[("Google Sheet")]
-    W -. optional .-> GS
+    F["find<br/>(free)"] --> E["evaluate<br/>(tokens)"] --> A["apply<br/>(tokens)"] --> R["recorded<br/>tracker · run folder · sheet"]
+    U(["you: review each page,<br/>say yes to submit"]) -.-> A
 ```
 
-The engine expects its own file names (`portals.yml`, `modes/_custom.md`, …).
-`my-data/.engine/` holds links from those names to your readable files, so you
-only ever edit `my-data/profile/` and `my-data/preferences/`. `./jobs` keeps
-the links working.
+1. **find** scans your companies' job boards and lists new jobs.
+2. **evaluate** has Claude score each job against your CV.
+3. **apply** fills forms for jobs scoring at least 4.0 while you watch each page.
+4. Each submit is **recorded** in the tracker, the run folder and your sheet.
+
+Full flow, every script, and where each file lives: [workflows/README.md](workflows/README.md).
+
+## Output of each step
+
+All output goes to `my-data/`. Each scan gets its own folder, `runs/DATE/`
+(for example `runs/2026-11-24_0800/`).
+
+### `./jobs find` → `runs/DATE/jobs-found.md`
+
+One line per new job. The checkbox shows where it stands:
+
+```
+- [ ] Coinbase — Software Engineer | Remote - USA | posted 2026-10-20 | yrs 2+ | <url>
+```
+
+`[ ]` open · `[x]` applied · `[!]` skipped. `yrs` is the minimum experience
+the posting states, if any.
+
+### `./jobs evaluate` → `reports/`, `scores.md`, `tracker.md`
+
+**`runs/DATE/reports/047-coinbase-2026-11-23.md`**, one report per job:
+
+```
+# Evaluation: Coinbase — Software Engineer - Crypto Data Foundations
+**Score:** 4.2/5      **Decision:** Apply      **Legitimacy:** High Confidence
+**Work Auth:** ⚠️ Unstated      **URL:** <url>
+## A) Role Summary      ## B) Match with CV (+ gaps)    ## C) Level and Strategy
+## D) Comp and Demand   ## E) Customization Plan        ## F) Interview Plan
+## G) Posting Legitimacy   ## Verdict   ## Risk Summary   ## Job Description (archived)
+```
+
+**`runs/DATE/scores.md`**: that run's jobs, highest score first.
+**`tracker.md`**: every job you've ever evaluated. Both use the same table:
+
+```
+| # | Date | Company | Role | Score | Status | PDF | Report | Notes |
+| 47 | 2026-11-23 | Coinbase | Software Engineer - Crypto Data Foundations | 4.2/5 | Evaluated | ❌ | 047 | Remote US; 2+ yrs; $152K-$179K; … |
+```
+
+The job's line in `jobs-found.md` also gains its score: `… | score 4.2 | <url>`.
+
+### `./jobs apply` → filled form, then records
+
+Nothing is written until you say **yes** and the confirmation page appears. Then:
+
+| Where | Change |
+|---|---|
+| `tracker.md` | Status → `Applied` |
+| `runs/DATE/jobs-found.md` | `- [x] … — applied 2026-11-24` (skipped: `- [!] … — skipped: <reason>`) |
+| Google Sheet | new row: `Company · Date · Role · Location · Link · Referral? · Result` |
+| `profile/form-answers.yml`, `preferences/house-rules.md` | answers and rules learned from your edits |
+
+Tracker statuses: `Evaluated` → `Applied` → `Responded` / `Interview` →
+`Offer` / `Rejected`, plus `SKIP` and `Discarded`.
+
+### `./jobs status` → summary on screen
+
+```
+Tracker: 43 jobs  ·  Evaluated 31  ·  SKIP 1  ·  Applied 11
+Runs (newest first):
+  2026-11-23_1716  30 found · 8 applied · 4 skipped · 0 ready (score ≥ 4) · 0 not yet scored
+```
+
+### Daily schedule (optional) → `shortlist.md`
+
+A quick title-and-location triage of new jobs, with no posting opened:
+`## Worth a look` · `## Maybe` · `## Skip`, one line per job with a reason.
 
 ## What's free and what uses tokens
 
@@ -159,7 +174,7 @@ Optional:
 
 ```
 jobs                         the one command
-workflows/                   find, filter, run folders, sheet sync, daily schedule
+workflows/                   find, filter, run folders, sheet sync (details: workflows/README.md)
 .claude/skills/apply-jobs/   the page-by-page apply assistant
 my-data.example/             template for your data folder
 my-data/                     YOUR data, gitignored (see my-data.example/README.md)
@@ -174,14 +189,6 @@ engine/                      the career-ops engine (scanning, scoring, tracker),
 You never need to open `engine/`. It's a trimmed copy of
 [career-ops](https://github.com/career-ops-hq/career-ops) with only what
 finding, scoring and applying use. Its own guide is `engine/README.md`.
-
-`jobs-found.md` uses one line per job:
-
-```
-- [ ] Company — Role | Location | posted 2026-11-12 | yrs 2+ | score 4.2 | <url>
-- [x] … — applied 2026-11-24
-- [!] … — skipped: requires 4+ yrs
-```
 
 ## How it learns
 
