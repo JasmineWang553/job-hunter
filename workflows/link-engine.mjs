@@ -10,7 +10,7 @@
 // This script moves that file back to its readable location and relinks it.
 import { existsSync, lstatSync, mkdirSync, readlinkSync, renameSync, symlinkSync, writeFileSync, copyFileSync } from 'node:fs';
 import { dirname, join, relative } from 'node:path';
-import { DATA, ENGINE_VIEW, REPO } from './lib/paths.mjs';
+import { DATA, ENGINE, ENGINE_VIEW } from './lib/paths.mjs';
 
 const check = process.argv.includes('--check');
 
@@ -85,13 +85,13 @@ for (const [shortcut, engineFile] of Object.entries(SHORTCUTS)) {
 }
 
 // the marker that tells the engine where its data root is
-const marker = join(REPO, '.career-ops-data');
-const want = relative(REPO, ENGINE_VIEW) + '\n';
+const marker = join(ENGINE, '.career-ops-data');
+const want = relative(ENGINE, ENGINE_VIEW) + '\n';
 let have = null;
 try { have = (await import('node:fs')).readFileSync(marker, 'utf8'); } catch { /* none */ }
 if (have !== want) {
   if (check) problems.push('.career-ops-data marker missing or wrong');
-  else { writeFileSync(marker, want); done.push(`wrote .career-ops-data -> ${want.trim()}`); }
+  else { writeFileSync(marker, want); done.push(`wrote engine/.career-ops-data -> ${want.trim()}`); }
 }
 
 for (const d of done) console.log(`  ${d}`);

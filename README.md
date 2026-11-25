@@ -3,7 +3,7 @@
 Find jobs, score them against your CV, and fill applications in your own
 browser, one page at a time. You review every page and say "yes" before
 anything is submitted. Built on [career-ops](https://github.com/career-ops-hq/career-ops)
-(the "engine": scanning, scoring, tracker), with a simpler layer on top.
+(the "engine", in `engine/`: scanning, scoring, tracker), with a simpler layer on top.
 
 ## The loop
 
@@ -158,18 +158,22 @@ Optional:
 ## Where things are
 
 ```
-jobs                  the one command
-workflows/            find, filter, run folders, sheet sync, daily schedule
+jobs                         the one command
+workflows/                   find, filter, run folders, sheet sync, daily schedule
 .claude/skills/apply-jobs/   the page-by-page apply assistant
-my-data.example/      template for your data folder
-my-data/              YOUR data, gitignored (see my-data.example/README.md)
-  profile/            cv.md, profile.yml, form-answers.yml, ai-tools.md, resume
-  preferences/        settings.yml, target-companies.yml (companies to scan),
-                      house-rules.md, …
-  runs/<date>/        jobs-found.md, scores.md, reports/
-  tracker.md          every job you've scored or applied to
-everything else       the career-ops engine (see ENGINE.md), used as-is
+my-data.example/             template for your data folder
+my-data/                     YOUR data, gitignored (see my-data.example/README.md)
+  profile/                   cv.md, profile.yml, form-answers.yml, ai-tools.md, resume
+  preferences/               settings.yml, target-companies.yml (companies to scan),
+                             house-rules.md, …
+  runs/<date>/               jobs-found.md, scores.md, reports/
+  tracker.md                 every job you've scored or applied to
+engine/                      the career-ops engine (scanning, scoring, tracker), used as-is
 ```
+
+You never need to open `engine/`. It's a trimmed copy of
+[career-ops](https://github.com/career-ops-hq/career-ops) with only what
+finding, scoring and applying use. Its own guide is `engine/README.md`.
 
 `jobs-found.md` uses one line per job:
 

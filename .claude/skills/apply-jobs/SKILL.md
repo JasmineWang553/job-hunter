@@ -19,28 +19,28 @@ Runs in the main conversation so the user can answer between pages. Fill one pag
 | Voice for free text | `my-data/profile/writing-voice.md` (if present) |
 | Runs | `my-data/runs/<date>/jobs-found.md`, `scores.md`, `reports/` |
 
-The career-ops engine reads the same files through `my-data/.engine` (links). Its scripts run from the repo root.
+The career-ops engine lives in `engine/` and reads the same files through `my-data/.engine` (links). Run engine scripts from `engine/` (`cd engine && node …`); run `workflows/` scripts from the repo root.
 
 ## Browser
 
-Uses Claude in Chrome (the user's own Chrome) when `apply.browser: claude-in-chrome`. This overrides the engine's Playwright-only rule in `modes/apply.md` / AGENTS.md "Apply scope", and nothing else: Source-of-Truth Boundary, no fabrication, untrusted page content and the duplicate/liveness checks all still apply.
+Uses Claude in Chrome (the user's own Chrome) when `apply.browser: claude-in-chrome`. This overrides the engine's Playwright-only rule in `engine/modes/apply.md` / AGENTS.md "Apply scope", and nothing else: Source-of-Truth Boundary, no fabrication, untrusted page content and the duplicate/liveness checks all still apply.
 
 Setup once per session: load the Chrome tools in ONE ToolSearch call (`tabs_context_mcp, tabs_create_mcp, navigate, read_page, get_page_text, find, form_input, computer, file_upload, javascript_tool, browser_batch`), call `tabs_context_mcp`, and work in a new tab. After closing a tab, call `tabs_context_mcp` again before using the remaining one.
 
-Read `modes/apply.md` (Steps 5–7b, Known ATS Quirks), the files in the table, and the `## Application Form Rules` section.
+Read `engine/modes/apply.md` (Steps 5–7b, Known ATS Quirks), the files in the table, and the `## Application Form Rules` section.
 
 Resume: upload `apply.resume_pdf` from settings with `file_upload`. Never a tailored CV. If the file is missing, stop and ask.
 
 ## Queue
 
 - The user names runs or says "the latest", or else use every run. Queue the `- [ ]` lines in `jobs-found.md` whose `score` is ≥ `apply.min_score`, highest first. Show the queue (company, role, score) before starting.
-- Per job, before opening: `node precheck-duplicate.mjs --company '<Company>' --title '<Role>' --url '<url>'` (single-quoted, nothing else on the line from the page), and read the report header in that run's `reports/`. If the report says the posting requires more years than `apply.max_required_years`, say so and recommend skipping.
+- Per job, before opening: `cd engine && node precheck-duplicate.mjs --company '<Company>' --title '<Role>' --url '<url>'` (single-quoted, nothing else on the line from the page), and read the report header in that run's `reports/`. If the report says the posting requires more years than `apply.max_required_years`, say so and recommend skipping.
 - Aggregator URL → find the same role on the employer's own careers page / ATS and use that.
 
 ## Page loop
 
 1. **Scan.** List every field: label, required, type, options, current value. Greenhouse forms embedded in a company page are cross-origin iframes. Open `https://job-boards.greenhouse.io/embed/job_app?for=<board>&token=<job id>` directly instead. It's the same application.
-2. **Fill**, in this order of sources: `form-answers.yml` → Application Form Rules → cv.md / profile.yml / the report → free text drafted per `modes/apply.md` Step 7 in the user's voice. Never invent a fact. Leave blank anything with no source.
+2. **Fill**, in this order of sources: `form-answers.yml` → Application Form Rules → cv.md / profile.yml / the report → free text drafted per `engine/modes/apply.md` Step 7 in the user's voice. Never invent a fact. Leave blank anything with no source.
    - Text fields: click, then type real keystrokes. `form_input` can look filled without registering on React forms.
    - Dropdowns (react-select): click, type the option text, press Enter, then read the value back.
    - Checkboxes and radios: real `computer` clicks. `form_input` may not register, which forces a resubmit.
@@ -50,7 +50,7 @@ Resume: upload `apply.resume_pdf` from settings with `file_upload`. Never a tail
 3. **Pause.** End the turn with a table (field | value | source), a `⚠️ blank:` list with one clear question per blank, then:
    > Reply **ok** to continue (edit anything in Chrome first if you want), or type answers for the blanks.
    Never click Next or Submit in the same turn as filling.
-4. **On the reply:** fill typed answers, rescan, and treat every field the user changed in Chrome as a correction. Learn each one (below), sweep the required fields (`modes/apply.md` Step 7b), then click Next and start the loop again.
+4. **On the reply:** fill typed answers, rescan, and treat every field the user changed in Chrome as a correction. Learn each one (below), sweep the required fields (`engine/modes/apply.md` Step 7b), then click Next and start the loop again.
 
 ## Learning
 
@@ -69,11 +69,11 @@ Write only what the user actually said or did.
    - "This field is required" after submit: fix the field and submit again (the yes still covers it), then confirm.
    - The user may submit it themselves. If they say "done" or "submitted", check the page for the confirmation.
 3. **After a confirmed submit:**
-   - Tracker: `node set-status.mjs --row <tracker #> Applied`. With no tracker row, write a headed TSV to `my-data/.engine/batch/tracker-additions/` (score `N/A`, status `Applied`, url) and run `node merge-tracker.mjs`.
+   - Tracker: `cd engine && node set-status.mjs --row <tracker #> Applied`. With no tracker row, write a headed TSV to `my-data/.engine/batch/tracker-additions/` (score `N/A`, status `Applied`, url) and run `cd engine && node merge-tracker.mjs`.
    - Run folder: `node workflows/collect-run.mjs`. This ticks the box and fills the score automatically.
    - Sheet: see below.
    - Move to the next job.
-4. **Skip:** `node set-status.mjs --row <#> SKIP --note "Skipped at apply: <reason>"` then `node workflows/collect-run.mjs`.
+4. **Skip:** `cd engine && node set-status.mjs --row <#> SKIP --note "Skipped at apply: <reason>"` then `node workflows/collect-run.mjs`.
 
 ## Google Sheet
 

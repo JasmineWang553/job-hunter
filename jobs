@@ -15,7 +15,7 @@ REPO="$PWD"
 DATA="${JOB_HUNTER_DATA:-my-data}"
 
 need_setup() {
-  [[ -d "$DATA/profile" && -f .career-ops-data ]] || { echo "Run ./jobs setup first."; exit 1; }
+  [[ -d "$DATA/profile" && -f engine/.career-ops-data ]] || { echo "Run ./jobs setup first."; exit 1; }
   relink
 }
 # Engine scripts sometimes save over a link with a plain file; this puts the
@@ -25,15 +25,15 @@ copy_if_missing() { [[ -e "$2" ]] || { mkdir -p "${2:h}"; cp "$1" "$2"; echo "  
 
 case "${1:-help}" in
   setup)
-    [[ -d node_modules ]] || npm install
+    [[ -d engine/node_modules ]] || ( cd engine && npm install )
     if [[ ! -d "$DATA/profile" ]]; then
       cp -R my-data.example "$DATA"
       echo "Created $DATA/ from my-data.example/."
     fi
-    copy_if_missing modes/_profile.template.md "$DATA/preferences/targeting.md"
-    copy_if_missing modes/_custom.template.md  "$DATA/preferences/house-rules.md"
-    copy_if_missing modes/_brief.template.md   "$DATA/preferences/brief.md"
-    copy_if_missing voice-dna.template.md      "$DATA/profile/writing-voice.md"
+    copy_if_missing engine/modes/_profile.template.md "$DATA/preferences/targeting.md"
+    copy_if_missing engine/modes/_custom.template.md  "$DATA/preferences/house-rules.md"
+    copy_if_missing engine/modes/_brief.template.md   "$DATA/preferences/brief.md"
+    copy_if_missing engine/voice-dna.template.md      "$DATA/profile/writing-voice.md"
     node workflows/link-engine.mjs
     cat <<EOF
 
@@ -46,12 +46,12 @@ Next:
 EOF
     ;;
   find)     need_setup; shift; zsh workflows/find-jobs.sh "$@" ;;
-  evaluate) need_setup; claude "/career-ops pipeline"; relink; node workflows/collect-run.mjs ;;
+  evaluate) need_setup; ( cd engine && claude "/career-ops pipeline" ); relink; node workflows/collect-run.mjs ;;
   apply)    need_setup; claude "/apply-jobs"; relink; node workflows/collect-run.mjs ;;
   status)   need_setup; node workflows/status.mjs ;;
   sheet)    need_setup; node workflows/sync-sheet.mjs ${2:+--$2} ;;
-  doctor)   node workflows/link-engine.mjs && node doctor.mjs ;;
-  onboard)  need_setup; claude "/career-ops"; relink ;;
+  doctor)   node workflows/link-engine.mjs && ( cd engine && node doctor.mjs ) ;;
+  onboard)  need_setup; ( cd engine && claude "/career-ops" ); relink ;;
   schedule)
     PLIST="$HOME/Library/LaunchAgents/io.job-hunter.daily.plist"
     case "$2" in
