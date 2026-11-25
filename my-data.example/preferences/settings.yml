@@ -1,0 +1,29 @@
+# Settings for the find / apply workflows (./jobs).
+# Engine settings (targets, comp, location) stay in profile/profile.yml.
+
+find:
+  # After each scan, drop new jobs whose stated minimum years is above this.
+  max_required_years: 2
+
+apply:
+  # Resume uploaded to every application (path inside my-data).
+  resume_pdf: "profile/resume.pdf"
+  # claude-in-chrome = your own Chrome (you see every page).
+  browser: claude-in-chrome
+  # Only jobs scored at or above this are queued.
+  min_score: 4.0
+  # Skip a job at apply time if the posting requires more years than this.
+  max_required_years: 3
+
+tracking_sheet:
+  # Leave url empty and the apply workflow will offer to create one
+  # in a Google Drive folder you give it.
+  url: ""
+  drive_folder: ""
+  # chrome = type rows in the browser. apps-script = post to a script in the
+  # sheet (see workflows/sheet/README.md); more reliable, 5 minutes to set up.
+  write_method: chrome
+  apps_script_url: ""
+  apps_script_secret: ""
+  columns: [Company, Date, Role, Location, Link, Referral?, Result]
+  result_values: [Applied, Interview, Rejected, Accepted]

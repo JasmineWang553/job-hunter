@@ -1,0 +1,25 @@
+# Standard answers for job application forms.
+# The apply workflow fills these in without asking, and adds new ones as you
+# answer questions it couldn't fill. Delete anything you'd rather be asked about.
+
+# work_authorized_us: "Yes"
+# requires_sponsorship: "No"
+# employed_by_company_or_affiliate: "No"
+# sms_opt_in: "No"
+# whatsapp_opt_in: "No"
+# how_did_you_hear: "LinkedIn"
+# preferred_name: ""
+# current_employer: ""
+# current_job_title: ""
+# years_relevant_total: ""
+# willing_hybrid_onsite: "Yes"
+# non_compete_or_non_solicit: "No"
+# government_official_or_relative: "No"
+#
+# Voluntary self-identification (optional; leave out to be asked each time):
+# gender: ""
+# gender_identity: ""
+# race: ""
+# hispanic_latino: ""
+# veteran_status: ""
+# disability_status: ""

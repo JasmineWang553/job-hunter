@@ -1,0 +1,82 @@
+#!/bin/zsh
+# job-hunter: one command for the whole loop.
+#   ./jobs setup        first-time setup (data folder, links, dependencies)
+#   ./jobs onboard      tell it about you: CV, targets, companies (opens Claude Code)
+#   ./jobs find         scan job boards, file new jobs into my-data/runs/<date>/
+#   ./jobs evaluate     score the new jobs (opens Claude Code)
+#   ./jobs apply        fill applications one page at a time (opens Claude Code)
+#   ./jobs status       what's found, scored, applied, waiting
+#   ./jobs sheet [push] rows for your Google Sheet; push sends them (Apps Script)
+#   ./jobs doctor       check links and the engine's setup
+#   ./jobs schedule install|remove   weekday 8am find + triage (macOS)
+set -e
+cd "${0:A:h}"
+REPO="$PWD"
+DATA="${JOB_HUNTER_DATA:-my-data}"
+
+need_setup() {
+  [[ -d "$DATA/profile" && -f .career-ops-data ]] || { echo "Run ./jobs setup first."; exit 1; }
+  relink
+}
+# Engine scripts sometimes save over a link with a plain file; this puts the
+# file back in its readable place. Cheap, so run it around every command.
+relink() { node workflows/link-engine.mjs | grep -v "^links ok" || true; }
+copy_if_missing() { [[ -e "$2" ]] || { mkdir -p "${2:h}"; cp "$1" "$2"; echo "  created ${2#$DATA/}"; }; }
+
+case "${1:-help}" in
+  setup)
+    [[ -d node_modules ]] || npm install
+    if [[ ! -d "$DATA/profile" ]]; then
+      cp -R my-data.example "$DATA"
+      echo "Created $DATA/ from my-data.example/."
+    fi
+    copy_if_missing modes/_profile.template.md "$DATA/preferences/targeting.md"
+    copy_if_missing modes/_custom.template.md  "$DATA/preferences/house-rules.md"
+    copy_if_missing modes/_brief.template.md   "$DATA/preferences/brief.md"
+    copy_if_missing voice-dna.template.md      "$DATA/profile/writing-voice.md"
+    node workflows/link-engine.mjs
+    cat <<EOF
+
+Next:
+  1. ./jobs onboard   (Claude Code walks you through your CV, profile and
+     target companies)
+  2. Put your resume PDF in $DATA/profile/ and set apply.resume_pdf in
+     $DATA/preferences/settings.yml.
+  3. ./jobs find   then   ./jobs evaluate   then   ./jobs apply
+EOF
+    ;;
+  find)     need_setup; shift; zsh workflows/find-jobs.sh "$@" ;;
+  evaluate) need_setup; claude "/career-ops pipeline"; relink; node workflows/collect-run.mjs ;;
+  apply)    need_setup; claude "/apply-jobs"; relink; node workflows/collect-run.mjs ;;
+  status)   need_setup; node workflows/status.mjs ;;
+  sheet)    need_setup; node workflows/sync-sheet.mjs ${2:+--$2} ;;
+  doctor)   node workflows/link-engine.mjs && node doctor.mjs ;;
+  onboard)  need_setup; claude "/career-ops"; relink ;;
+  schedule)
+    PLIST="$HOME/Library/LaunchAgents/io.job-hunter.daily.plist"
+    case "$2" in
+      install)
+        mkdir -p "$DATA/logs"
+        { echo '<?xml version="1.0" encoding="UTF-8"?>'
+          echo '<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">'
+          echo '<plist version="1.0"><dict>'
+          echo '  <key>Label</key><string>io.job-hunter.daily</string>'
+          echo "  <key>ProgramArguments</key><array><string>/bin/zsh</string><string>-l</string><string>$REPO/workflows/daily.sh</string></array>"
+          echo "  <key>WorkingDirectory</key><string>$REPO</string>"
+          echo '  <key>StartCalendarInterval</key><array>'
+          for d in 1 2 3 4 5; do echo "    <dict><key>Weekday</key><integer>$d</integer><key>Hour</key><integer>8</integer><key>Minute</key><integer>0</integer></dict>"; done
+          echo '  </array>'
+          echo "  <key>StandardOutPath</key><string>$REPO/$DATA/logs/schedule.log</string>"
+          echo "  <key>StandardErrorPath</key><string>$REPO/$DATA/logs/schedule.log</string>"
+          echo '</dict></plist>'; } > "$PLIST"
+        launchctl unload "$PLIST" 2>/dev/null || true
+        launchctl load "$PLIST"
+        echo "Scheduled weekdays 8:00: $PLIST" ;;
+      remove)
+        launchctl unload "$PLIST" 2>/dev/null || true
+        rm -f "$PLIST"
+        echo "Schedule removed." ;;
+      *) echo "usage: ./jobs schedule install|remove" ;;
+    esac ;;
+  *) sed -n '2,11p' "$0" | sed 's/^# \{0,1\}//' ;;
+esac
