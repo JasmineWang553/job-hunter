@@ -25,11 +25,11 @@ tracker, and (optional) added to a Google Sheet.
 flowchart TD
     subgraph FIND["./jobs find · free"]
         A["scan.mjs<br/>public job-board APIs of every company<br/>in target-companies.yml"] --> B["filter-by-experience.mjs<br/>drops jobs needing more years than<br/>find.max_required_years"]
-        B --> C["collect-run.mjs<br/>new jobs → runs/&lt;date&gt;/jobs-found.md"]
+        B --> C["collect-run.mjs<br/>new jobs → runs/DATE/jobs-found.md"]
     end
 
     subgraph EVAL["./jobs evaluate · tokens"]
-        D["Claude scores each job 0-5<br/>against your CV and targeting"] --> E["report per job → runs/&lt;date&gt;/reports/<br/>row per job → tracker.md + scores.md"]
+        D["Claude scores each job 0-5<br/>against your CV and targeting"] --> E["report per job → runs/DATE/reports/<br/>row per job → tracker.md + scores.md"]
     end
 
     subgraph APPLY["./jobs apply · tokens"]
@@ -43,7 +43,7 @@ flowchart TD
 
     subgraph RECORD["after each submit · free"]
         L["tracker.md → Applied"]
-        M["jobs-found.md → [x] applied &lt;date&gt;"]
+        M["jobs-found.md → [x] applied DATE"]
         N["Google Sheet row<br/>(optional)"]
     end
 
@@ -70,7 +70,7 @@ flowchart LR
     subgraph MD["my-data/  (yours, never pushed)"]
         P["profile/<br/>cv.md · profile.yml<br/>form-answers.yml · ai-tools.md · resume"]
         PR["preferences/<br/>settings.yml · target-companies.yml<br/>house-rules.md · targeting.md"]
-        R["runs/&lt;date&gt;/<br/>jobs-found.md · scores.md · reports/"]
+        R["runs/DATE/<br/>jobs-found.md · scores.md · reports/"]
         T["tracker.md"]
     end
 
