@@ -104,6 +104,8 @@ export function rowForUrl(url, rows, reportUrls) {
     const ids = r.notes.match(/\d{6,}/g) || [];
     if (ids.some((id) => url.includes(id))) return r;
   }
+  // rows added without a report (apply --unscored) carry the posting URL in the notes
+  for (const r of rows) if (r.line.includes(url)) return r;
   return null;
 }
 

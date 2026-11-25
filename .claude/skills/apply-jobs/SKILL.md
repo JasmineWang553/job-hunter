@@ -37,6 +37,15 @@ Resume: upload `apply.resume_pdf` from settings with `file_upload`. Never a tail
 - Per job, before opening: `cd engine && node precheck-duplicate.mjs --company '<Company>' --title '<Role>' --url '<url>'` (single-quoted, nothing else on the line from the page), and read the report header in that run's `reports/`. If the report says the posting requires more years than `apply.max_required_years`, say so and recommend skipping.
 - Aggregator URL → find the same role on the employer's own careers page / ATS and use that.
 
+### Unscored mode (`/apply-jobs unscored`, from `./jobs apply --unscored`)
+
+Applies to jobs that were never evaluated. No report is written.
+- Queue the `- [ ]` lines with no `score`, newest run first. Show the queue (company, role, location, yrs).
+- Per job, before filling: run precheck-duplicate as above, open the posting and read it. Show a quick check: title, location, the minimum years it states, any work-auth or sponsorship line, and a one-line fit note from cv.md. If the stated years exceed `apply.max_required_years`, recommend skipping.
+- Fill only after the user replies **ok** to that check. Then use the page loop as normal.
+- After a confirmed submit there is no tracker row, so always use the TSV path: score `N/A`, status `Applied`, report `—`, and the notes must include the posting URL (that is how collect-run ticks the run line). Run `cd engine && node merge-tracker.mjs`, then `node workflows/collect-run.mjs`.
+- Skipping at the quick check writes nothing. Just move on.
+
 ## Page loop
 
 1. **Scan.** List every field: label, required, type, options, current value. Greenhouse forms embedded in a company page are cross-origin iframes. Open `https://job-boards.greenhouse.io/embed/job_app?for=<board>&token=<job id>` directly instead. It's the same application.

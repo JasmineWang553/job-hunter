@@ -11,6 +11,7 @@ anything is submitted. Built on [career-ops](https://github.com/career-ops-hq/ca
 ./jobs find       scan company job boards → my-data/runs/<date>/jobs-found.md
 ./jobs evaluate   score each new job (0-5) → scores.md + reports/
 ./jobs apply      fill applications for jobs scoring ≥ 4.0, page by page
+                  (--unscored: skip evaluate, quick check per job instead)
 ./jobs status     what's found / scored / applied / waiting
 ```
 
@@ -118,6 +119,11 @@ A quick title-and-location triage of new jobs, with no posting opened:
 To keep token use down, run `find` as often as you like (it's free), then
 `evaluate` only what looks worth it. Scores below `apply.min_score` (default
 4.0) never reach `apply`.
+
+**Skipping evaluate:** `./jobs apply --unscored` works through jobs that were
+never scored. Before each one it shows a quick check (title, location, stated
+years, sponsorship line, one-line fit) and fills the form only after you say
+ok. No report is written; the tracker row gets score `N/A`.
 
 ## Choosing what to scan
 

@@ -4,7 +4,7 @@
 #   ./jobs onboard      tell it about you: CV, targets, companies (opens Claude Code)
 #   ./jobs find         scan job boards, file new jobs into my-data/runs/<date>/
 #   ./jobs evaluate     score the new jobs (opens Claude Code)
-#   ./jobs apply        fill applications one page at a time (opens Claude Code)
+#   ./jobs apply [--unscored]  fill applications page by page (opens Claude Code)
 #   ./jobs status       what's found, scored, applied, waiting
 #   ./jobs sheet [push] rows for your Google Sheet; push sends them (Apps Script)
 #   ./jobs doctor       check links and the engine's setup
@@ -47,7 +47,9 @@ EOF
     ;;
   find)     need_setup; shift; zsh workflows/find-jobs.sh "$@" ;;
   evaluate) need_setup; ( cd engine && claude "/career-ops pipeline" ); relink; node workflows/collect-run.mjs ;;
-  apply)    need_setup; claude "/apply-jobs"; relink; node workflows/collect-run.mjs ;;
+  apply)    need_setup
+            if [[ "$2" == "--unscored" ]]; then claude "/apply-jobs unscored"; else claude "/apply-jobs"; fi
+            relink; node workflows/collect-run.mjs ;;
   status)   need_setup; node workflows/status.mjs ;;
   sheet)    need_setup; node workflows/sync-sheet.mjs ${2:+--$2} ;;
   doctor)   node workflows/link-engine.mjs && ( cd engine && node doctor.mjs ) ;;
